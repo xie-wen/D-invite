@@ -7,7 +7,19 @@
 <meta name="description" content="良辰已定，吉日待访。2027年1月15日（农历十二月初八，星期五）午11:30，温州瓯海云天楼瓯越酒店二楼天悦厅，诚邀莅临。谢尚溪、杨月仙 夫妇敬邀。">
 <meta name="format-detection" content="telephone=no">
 <meta property="og:title" content="杨龙瀚 & 马志豪 · 订婚邀请函">
-<meta property="og:description" content="2027年1月15日 · 温州云天楼瓯越酒店 二楼天悦厅 · 诚邀莅临">
+<meta property="og:description" content="良辰已定，吉日待访。2027年1月15日（农历十二月初八，星期五）午11:30，温州瓯海云天楼瓯越酒店二楼天悦厅，诚邀莅临。谢尚溪、杨月仙 夫妇敬邀。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://xie-wen.github.io/D-invite/">
+<meta property="og:site_name" content="订婚邀请函">
+<meta property="og:image" content="https://xie-wen.github.io/D-invite/share.jpg">
+<meta property="og:image:secure_url" content="https://xie-wen.github.io/D-invite/share.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="500">
+<meta property="og:image:height" content="500">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="杨龙瀚 & 马志豪 · 订婚邀请函">
+<meta name="twitter:image" content="https://xie-wen.github.io/D-invite/share.jpg">
+<link rel="apple-touch-icon" href="share.png">
 <meta name="theme-color" content="#5d0a10">
 <style>
   :root{
@@ -715,7 +727,7 @@
     var o2 = actx.createOscillator(), g2 = actx.createGain();
     o2.type = 'triangle'; o2.frequency.value = freq * 2.002;
     g2.gain.setValueAtTime(0, when);
-    g2.gain.linearRampToValueAtTime(vol * 0.16, when + 0.05);
+    g2.gain.linearRampToValueAtTime(vol * 0.22, when + 0.05);
     g2.gain.exponentialRampToValueAtTime(0.0006, when + dur * 0.7);
     o2.connect(g2); g2.connect(master);
     o2.start(when); o2.stop(when + dur * 0.7 + 0.05);
@@ -727,46 +739,65 @@
     var beat = 0.62;
     for (var i = 0; i < 4; i++) {
       var m = melody[(step + i) % melody.length];
-      playNote(scale[m], now + i * beat, 1.5, 0.16);
+      playNote(scale[m], now + i * beat, 1.5, 0.30);
     }
     step += 4;
     timer = setTimeout(schedule, beat * 4 * 1000);
   }
 
   function startMusic(){
+    if (playing) return true;
     if (!actx) {
       var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return false;
-      actx = new Ctx();
-      master = actx.createGain();
-      master.gain.value = 0.55;
-      master.connect(actx.destination);
+      if (!Ctx) { toast('当前浏览器不支持背景音乐'); return false; }
+      try {
+        actx = new Ctx();
+        master = actx.createGain();
+        master.gain.value = 0.85;
+        master.connect(actx.destination);
+      } catch (e) { actx = null; toast('当前浏览器不支持背景音乐'); return false; }
     }
-    if (actx.state === 'suspended') actx.resume();
     playing = true;
     musicBtn.classList.add('on');
     clearTimeout(timer);
+    timer = null;
     step = 0;
-    schedule();
+    try { master.gain.cancelScheduledValues(actx.currentTime); master.gain.value = 0.85; } catch (e) {}
+    var go = function(){ if (playing) schedule(); };
+    if (actx.state === 'suspended' || actx.state === 'interrupted') {
+      var p = actx.resume();
+      if (p && typeof p.then === 'function') { p.then(go, go); } else { setTimeout(go, 80); }
+    } else {
+      go();
+    }
     return true;
   }
   function stopMusic(){
     playing = false;
     musicBtn.classList.remove('on');
     clearTimeout(timer);
-    if (master) {
-      try { master.gain.setTargetAtTime(0, actx.currentTime, 0.15); } catch(e){}
+    timer = null;
+    if (master && actx) {
+      try { master.gain.cancelScheduledValues(actx.currentTime); master.gain.value = 0; } catch(e){}
     }
-    setTimeout(function(){
-      if (!playing && master) {
-        try { master.disconnect(); } catch(e){}
-        master = actx.createGain(); master.gain.value = 0.55; master.connect(actx.destination);
-      }
-    }, 400);
   }
 
-  musicBtn.addEventListener('click', function(){
+  musicBtn.addEventListener('click', function(e){
+    if (e) { e.stopPropagation(); }
     if (playing) { stopMusic(); } else { startMusic(); }
+  });
+
+  /* 首次任意手势自动起播：微信/iOS 禁止无交互自动播放，必须挂在用户手势上 */
+  var booted = false;
+  function bootStart(e){
+    if (booted) return;
+    var t = e && e.target;
+    if (t && t.closest && t.closest('#musicBtn')) return;   // 音符按钮自己处理
+    booted = true;
+    if (startMusic()) toast('♪ 背景音乐已开启');
+  }
+  ['pointerdown','touchstart','click','keydown'].forEach(function(ev){
+    window.addEventListener(ev, bootStart, {passive:true});
   });
 })();
 </script>
